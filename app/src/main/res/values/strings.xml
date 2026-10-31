@@ -1,0 +1,19 @@
+<resources>
+    <string name="app_name">Pinnacle SMS Organizer</string>
+    <string name="tab_all">All</string>
+    <string name="tab_personal">Personal</string>
+    <string name="tab_transactions">Transactions</string>
+    <string name="tab_otps">OTPs</string>
+    <string name="tab_promotions">Promotions</string>
+    <string name="tab_other">Other</string>
+    <string name="search_placeholder">Search sender, message, or code</string>
+    <string name="copy_otp">Copy OTP</string>
+    <string name="otp_copied">OTP copied to clipboard</string>
+    <string name="mark_as_read">Mark as read</string>
+    <string name="mark_as_unread">Mark as unread</string>
+    <string name="change_category">Change category</string>
+    <string name="permission_required_title">SMS Permission Required</string>
+    <string name="permission_required_desc">Pinnacle SMS Organizer organizes your SMS messages completely on-device. No data leaves your phone.</string>
+    <string name="grant_permission">Grant Permission</string>
+    <string name="demo_mode">Explore Demo Messages</string>
+</resources>
