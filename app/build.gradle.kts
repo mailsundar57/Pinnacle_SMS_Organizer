@@ -6,12 +6,12 @@ plugins {
 
 android {
     namespace = "com.pinnacle.smsorganizer"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.pinnacle.smsorganizer"
         minSdk = 26
-        targetSdk = 34
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0.0"
 
@@ -21,9 +21,28 @@ android {
         }
     }
 
+    val releaseStoreFile = providers.gradleProperty("PINNACLE_STORE_FILE").orNull
+    val releaseStorePassword = providers.gradleProperty("PINNACLE_STORE_PASSWORD").orNull
+    val releaseKeyAlias = providers.gradleProperty("PINNACLE_KEY_ALIAS").orNull
+    val releaseKeyPassword = providers.gradleProperty("PINNACLE_KEY_PASSWORD").orNull
+    val hasReleaseSigning = listOf(
+        releaseStoreFile, releaseStorePassword, releaseKeyAlias, releaseKeyPassword
+    ).all { !it.isNullOrBlank() }
+    if (hasReleaseSigning) {
+        signingConfigs {
+            create("release") {
+                storeFile = file(releaseStoreFile!!)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
+            if (hasReleaseSigning) signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

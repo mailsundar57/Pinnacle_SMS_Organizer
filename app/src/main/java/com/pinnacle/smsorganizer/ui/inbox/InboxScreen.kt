@@ -216,7 +216,7 @@ fun InboxScreen(
 
                 !state.hasSmsPermission && !state.isDemoMode -> {
                     PermissionPrompt(
-                        onRequestPermission = onRequestSmsPermission,
+                        onRequestDefaultSms = onRequestSmsPermission,
                         onEnableDemoMode = viewModel::enableDemoMode
                     )
                 }

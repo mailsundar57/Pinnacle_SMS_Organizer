@@ -84,7 +84,7 @@ class FakeThreadStateDao : ThreadStateDao {
 
 class FakeSmsProviderReader(
     private var hasPerm: Boolean = true,
-    private var isDefault: Boolean = false,
+    private var isDefault: Boolean = true,
     private val rawMessages: MutableList<RawSms> = mutableListOf()
 ) : SmsProviderReader(null) {
 

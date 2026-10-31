@@ -71,27 +71,22 @@ Pinnacle SMS Organizer is engineered with a strict **Privacy-by-Design** philoso
 
 ---
 
-## 📱 Android Restrictions & Default SMS Role
+## 📱 SMS access and default handler status
 
-### Android SMS Access Permissions
-- **`READ_SMS`**: Allows reading SMS messages from the system content provider (`content://sms` or `Telephony.Sms`).
-- **`RECEIVE_SMS`**: Listens for incoming SMS messages to keep the local database synchronized.
-- **`READ_CONTACTS`**: Resolves phone numbers into friendly contact names (optional).
+The app asks the user to select Pinnacle as the default SMS app before requesting SMS runtime permissions. It then requests `READ_SMS`, `RECEIVE_SMS`, and `SEND_SMS`; notification permission is independent and can be denied. Contact lookup is optional and currently does not request `READ_CONTACTS`.
 
 ### Default SMS App Role Limitations
-Starting with Android 4.4 (API 19) and Android 10+ (`RoleManager.ROLE_SMS`):
+Android 10+ uses `RoleManager.ROLE_SMS`; older supported versions use the legacy default-SMS chooser. Android and Google Play may restrict SMS permissions to an eligible default handler. A sideloaded app can also be subject to device-specific installation restrictions. The current environment had no usable ADB connection, so the installed phone's exact permission state could not be inspected.
 - **When NOT the Default SMS App**:
-  - The app operates in **Read-Only** mode with respect to the Android system SMS provider.
-  - Attempting to update `Telephony.Sms.READ` column on the system provider is restricted by the operating system.
-  - **Pinnacle's Solution**: The app maintains a **local read/unread override state** in its local Room database. Users can freely mark conversations as read or unread inside Pinnacle SMS Organizer regardless of whether it is the system default SMS app.
-  - The app displays an informative, non-intrusive banner explaining the read-only mode and providing a one-tap button to open Android's default SMS app selector.
-- **When Set as the Default SMS App**:
-  - Full write support is unlocked: read status updates are synced directly to Android's `Telephony.Sms` provider.
-  - The app provides all required manifest components:
-    - `SmsReceiver`: handles `SMS_DELIVER_ACTION` (`android.provider.Telephony.SMS_DELIVER`).
-    - `MmsReceiver`: handles `WAP_PUSH_DELIVER_ACTION` (`android.provider.Telephony.WAP_PUSH_DELIVER`).
-    - `ComposeSmsActivity`: handles `ACTION_SEND` and `ACTION_SENDTO` intents (`sms:`, `smsto:`).
-    - `HeadlessSmsSendService`: handles `RESPOND_VIA_MESSAGE` service calls.
+  - Pinnacle does not query the system SMS provider. The inbox offers demo messages until the user selects Pinnacle as default and grants the required permissions.
+  - The app refreshes role state on resume and stops querying real messages if the user switches to another SMS app.
+- **Current implementation scope**: SMS inbox reads, incoming SMS provider insertion/notifications, basic text composition, and send-result recording are implemented. MMS delivery, multipart result handling polish, and `RESPOND_VIA_MESSAGE` are placeholders/incomplete. Do not treat the app as a complete SMS replacement until those pieces and real-device behavior are verified.
+
+### Store distribution
+
+Google Play requires a qualifying core use case, default-handler flow before SMS permission requests, an SMS permissions declaration in Play Console, and a privacy policy describing sensitive SMS processing, use, retention, sharing, and deletion. Publish and link that policy before submission; this repository does not currently host a published policy URL. As of August 31, 2026, new Play submissions must target API 36. Review the live Play SMS policy and requirements before submission. F-Droid builds can be produced from source; dependencies are AndroidX, Kotlin, Room, and coroutines from public repositories, with no proprietary service SDKs. Classification remains offline and on-device.
+
+Release builds use the standard Android release variant. Create a private keystore and put `PINNACLE_STORE_FILE`, `PINNACLE_STORE_PASSWORD`, `PINNACLE_KEY_ALIAS`, and `PINNACLE_KEY_PASSWORD` in `~/.gradle/gradle.properties` or CI secrets; never commit keystores or passwords. The repository ignores common keystore extensions. Signing does not guarantee Play Protect warnings or store approval will disappear.
 
 ---
 
@@ -99,11 +94,11 @@ Starting with Android 4.4 (API 19) and Android 10+ (`RoleManager.ROLE_SMS`):
 
 - **Language**: Kotlin 1.9.23
 - **Minimum SDK**: API 26 (Android 8.0 Oreo)
-- **Target / Compile SDK**: API 34 (Android 14)
+- **Target / Compile SDK**: API 36 (Android 16)
 - **UI Framework**: Jetpack Compose with Material 3 (Compose BOM `2024.04.01`)
 - **Architecture**: MVVM with Kotlin Coroutines and StateFlow
 - **Database**: Room 2.6.1 with KSP code generation
-- **Build System**: Gradle 8.5 with Gradle Kotlin DSL (`.gradle.kts`)
+- **Build System**: Gradle 8.11.1 with Android Gradle Plugin 8.9.1 and Gradle Kotlin DSL
 - **Testing**: JUnit 4 with Kotlin Coroutines Test
 
 ---
@@ -112,7 +107,7 @@ Starting with Android 4.4 (API 19) and Android 10+ (`RoleManager.ROLE_SMS`):
 
 ### Prerequisites
 - JDK 17 (e.g. Eclipse Adoptium Temurin 17 or OpenJDK 17)
-- Android SDK 34 (`platforms;android-34`, `build-tools;34.0.0`, `platform-tools`)
+- Android SDK 36 (`platforms;android-36`, `build-tools;36.0.0`, `platform-tools`)
 
 ### Run Unit Tests
 To run all unit tests for the classifier, extractors, and repository:
@@ -125,6 +120,8 @@ To assemble the debug APK:
 ```bash
 ./gradlew assembleDebug
 ```
+
+To build a release APK, configure `signingConfigs` in a local Gradle properties file or CI secret store and attach it only to the `release` build type. Keep that configuration and keystore out of version control. An unsigned release artifact is not ready for distribution.
 The compiled APK will be output at:
 ```
 app/build/outputs/apk/debug/app-debug.apk

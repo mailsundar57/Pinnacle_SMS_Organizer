@@ -3,7 +3,11 @@ package com.pinnacle.smsorganizer.ui.compose
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
 import android.telephony.SmsManager
+import android.provider.Telephony
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -130,6 +134,15 @@ class ComposeSmsActivity : ComponentActivity() {
     }
 
     private fun sendSms(phoneNumber: String, text: String) {
+        if (Telephony.Sms.getDefaultSmsPackage(this) != packageName) {
+            Toast.makeText(this, "Set Pinnacle as the default SMS app before sending.", Toast.LENGTH_LONG).show()
+            return
+        }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED) {
+            Toast.makeText(this, "SMS sending permission is not granted.", Toast.LENGTH_LONG).show()
+            return
+        }
+        if (phoneNumber.isBlank() || text.isBlank()) return
         try {
             val smsManager: SmsManager = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
                 applicationContext.getSystemService(SmsManager::class.java)
@@ -137,8 +150,29 @@ class ComposeSmsActivity : ComponentActivity() {
                 @Suppress("DEPRECATION")
                 SmsManager.getDefault()
             }
-            smsManager.sendTextMessage(phoneNumber, null, text, null, null)
-            Toast.makeText(this, "Message sent successfully", Toast.LENGTH_SHORT).show()
+            val sentUri = contentResolver.insert(Telephony.Sms.Outbox.CONTENT_URI,
+                android.content.ContentValues().apply {
+                    put(Telephony.Sms.ADDRESS, phoneNumber)
+                    put(Telephony.Sms.BODY, text)
+                    put(Telephony.Sms.DATE, System.currentTimeMillis())
+                    put(Telephony.Sms.TYPE, Telephony.Sms.MESSAGE_TYPE_OUTBOX)
+                    put(Telephony.Sms.THREAD_ID, Telephony.Threads.getOrCreateThreadId(this@ComposeSmsActivity, phoneNumber))
+                })
+            val sentIntent = Intent(this, com.pinnacle.smsorganizer.data.receiver.SmsSendResultReceiver::class.java)
+                .setAction(com.pinnacle.smsorganizer.data.receiver.SmsSendResultReceiver.ACTION_SENT)
+                .setData(sentUri)
+            val sentPendingIntent = android.app.PendingIntent.getBroadcast(
+                this, (sentUri?.lastPathSegment?.hashCode() ?: System.currentTimeMillis().toInt()), sentIntent,
+                android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+            )
+            val parts = smsManager.divideMessage(text)
+            if (parts.size == 1) {
+                smsManager.sendTextMessage(phoneNumber, null, text, sentPendingIntent, null)
+            } else {
+                smsManager.sendMultipartTextMessage(phoneNumber, null, parts,
+                    ArrayList(List(parts.size) { sentPendingIntent }), null)
+            }
+            Toast.makeText(this, "SMS queued for sending.", Toast.LENGTH_SHORT).show()
             finish()
         } catch (e: Exception) {
             Toast.makeText(this, "Failed to send SMS: ${e.localizedMessage}", Toast.LENGTH_LONG).show()

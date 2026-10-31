@@ -35,7 +35,7 @@ open class SmsProviderReader(private val context: Context?) {
 
     open fun queryAllMessages(): List<RawSms> {
         val ctx = context ?: return emptyList()
-        if (!hasReadSmsPermission()) {
+        if (!hasReadSmsPermission() || !isDefaultSmsApp()) {
             return emptyList()
         }
 
@@ -102,7 +102,7 @@ open class SmsProviderReader(private val context: Context?) {
 
     open fun queryMessagesForThread(threadId: Long): List<RawSms> {
         val ctx = context ?: return emptyList()
-        if (!hasReadSmsPermission()) {
+        if (!hasReadSmsPermission() || !isDefaultSmsApp()) {
             return emptyList()
         }
 

@@ -33,7 +33,7 @@ class SmsRepositoryImpl(
     private val refreshTrigger = MutableStateFlow(0L)
 
     override fun hasSmsPermission(): Boolean {
-        return smsProviderReader.hasReadSmsPermission()
+        return smsProviderReader.hasReadSmsPermission() && smsProviderReader.isDefaultSmsApp()
     }
 
     override fun isDefaultSmsApp(): Boolean {
@@ -72,7 +72,7 @@ class SmsRepositoryImpl(
             val threadStateMap = threadStates.associateBy { it.threadId }
 
             // Decide whether to use real SMS or sample data
-            val rawMessages = if (isDemo || !hasSmsPermission()) {
+            val rawMessages = if (isDemo || !hasSmsPermission() || !isDefaultSmsApp()) {
                 SampleDataProvider.getSampleMessages()
             } else {
                 fetchRealMessages(overrideMap)
@@ -146,7 +146,7 @@ class SmsRepositoryImpl(
             }
             val threadState = threadStates.firstOrNull { it.threadId == threadId }
 
-            val messages = if (isDemo || !hasSmsPermission()) {
+            val messages = if (isDemo || !hasSmsPermission() || !isDefaultSmsApp()) {
                 SampleDataProvider.getSampleThreadConversation(threadId)
             } else {
                 fetchRealThreadMessages(threadId, overrideMap)

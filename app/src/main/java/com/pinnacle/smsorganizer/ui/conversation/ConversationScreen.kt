@@ -16,6 +16,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MarkEmailUnread
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -48,6 +50,7 @@ import com.pinnacle.smsorganizer.ui.components.CategoryOverrideDialog
 fun ConversationScreen(
     viewModel: ConversationViewModel,
     onNavigateBack: () -> Unit,
+    onCompose: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -62,6 +65,11 @@ fun ConversationScreen(
     }
 
     Scaffold(
+        floatingActionButton = {
+            FloatingActionButton(onClick = { onCompose(state.address) }) {
+                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Compose message")
+            }
+        },
         topBar = {
             TopAppBar(
                 navigationIcon = {
