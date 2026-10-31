@@ -5,11 +5,19 @@ import android.app.role.RoleManager
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -34,6 +42,7 @@ fun SmsOrganizerNavGraph(
     val context = LocalContext.current
     val app = context.applicationContext as PinnacleSmsApp
     val coroutineScope = rememberCoroutineScope()
+    var showRoleHelp by remember { mutableStateOf(false) }
 
     val notificationLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -76,7 +85,7 @@ fun SmsOrganizerNavGraph(
                 )
             )
         } else {
-            Toast.makeText(context, "Default SMS role was not granted.", Toast.LENGTH_LONG).show()
+            showRoleHelp = true
         }
     }
 
@@ -141,5 +150,33 @@ fun SmsOrganizerNavGraph(
                 }
             )
         }
+    }
+
+    if (showRoleHelp) {
+        AlertDialog(
+            onDismissRequest = { showRoleHelp = false },
+            title = { Text("Android did not set Pinnacle as the default SMS app") },
+            text = {
+                Text(
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+                        "If you installed Pinnacle from an APK file, Android may require a one-time confirmation. Open App info, tap ⋮, choose Allow restricted settings, then return and try again. Android controls this confirmation; Pinnacle cannot grant it. If you installed from a store, check Settings > Apps > Default apps > SMS app or any work-profile restrictions."
+                    } else {
+                        "Check Settings > Apps > Default apps > SMS app and confirm Pinnacle can be selected. A work profile or device administrator may also restrict changes to the default SMS app."
+                    }
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showRoleHelp = false
+                    context.startActivity(Intent(
+                        Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                        Uri.fromParts("package", context.packageName, null)
+                    ))
+                }) { Text("Open App info") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRoleHelp = false }) { Text("Close") }
+            }
+        )
     }
 }

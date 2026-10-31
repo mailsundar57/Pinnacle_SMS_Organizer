@@ -86,7 +86,11 @@ Android 10+ uses `RoleManager.ROLE_SMS`; older supported versions use the legacy
 
 Google Play requires a qualifying core use case, default-handler flow before SMS permission requests, an SMS permissions declaration in Play Console, and a privacy policy describing sensitive SMS processing, use, retention, sharing, and deletion. Publish and link that policy before submission; this repository does not currently host a published policy URL. As of August 31, 2026, new Play submissions must target API 36. Review the live Play SMS policy and requirements before submission. F-Droid builds can be produced from source; dependencies are AndroidX, Kotlin, Room, and coroutines from public repositories, with no proprietary service SDKs. Classification remains offline and on-device.
 
+The privacy policy draft is [PRIVACY_POLICY.md](PRIVACY_POLICY.md). Replace its publisher/contact placeholders, verify every statement against the final build, publish it at a stable public URL, and add that URL to the store listing before release. The manifest disables app-data backup.
+
 Release builds use the standard Android release variant. Create a private keystore and put `PINNACLE_STORE_FILE`, `PINNACLE_STORE_PASSWORD`, `PINNACLE_KEY_ALIAS`, and `PINNACLE_KEY_PASSWORD` in `~/.gradle/gradle.properties` or CI secrets; never commit keystores or passwords. The repository ignores common keystore extensions. Signing does not guarantee Play Protect warnings or store approval will disappear.
+
+See [DISTRIBUTION_CHECKLIST.md](DISTRIBUTION_CHECKLIST.md) for current release gates and store-console work.
 
 ---
 
@@ -121,7 +125,11 @@ To assemble the debug APK:
 ./gradlew assembleDebug
 ```
 
-To build a release APK, configure `signingConfigs` in a local Gradle properties file or CI secret store and attach it only to the `release` build type. Keep that configuration and keystore out of version control. An unsigned release artifact is not ready for distribution.
+For Google Play, configure release signing through the external properties above, then build an Android App Bundle with:
+```bash
+./gradlew bundleRelease
+```
+The AAB is written to `app/build/outputs/bundle/release/app-release.aab`. Keep the keystore and properties out of version control, and increment `versionCode` for each upload. An unsigned release artifact is not ready for distribution. `assembleRelease` builds an APK for direct testing; Play submissions should use the signed AAB.
 The compiled APK will be output at:
 ```
 app/build/outputs/apk/debug/app-debug.apk
