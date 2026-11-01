@@ -7,12 +7,12 @@ import android.content.Intent
 import android.os.IBinder
 
 /**
- * Required broadcast receiver for default SMS app compliance on Android.
- * Receives WAP_PUSH_DELIVER for incoming MMS messages.
+ * Android requires this manifest route for SMS-role eligibility.
+ * MMS delivery is intentionally unsupported; no message data is processed here.
  */
-class MmsReceiver : BroadcastReceiver() {
+class RequiredSmsRoleWapPushReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        // MMS push received; stub implementation for default SMS app role compliance
+        // Deliberately ignored: this app supports SMS only.
     }
 }
 

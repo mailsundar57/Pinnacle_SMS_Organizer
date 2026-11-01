@@ -159,7 +159,7 @@ fun SmsOrganizerNavGraph(
             text = {
                 Text(
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
-                        "If you installed Pinnacle from an APK file, Android may require a one-time confirmation. Open App info, tap ⋮, choose Allow restricted settings, then return and try again. Android controls this confirmation; Pinnacle cannot grant it. If you installed from a store, check Settings > Apps > Default apps > SMS app or any work-profile restrictions."
+                        "Android blocked this request as a restricted SMS setting. If this build was installed from an APK, close this message, open App info, tap ⋮, choose Allow restricted settings, and confirm with your screen lock. Then return here and tap Set as Default SMS App again. Android requires this confirmation from App info; Pinnacle cannot grant it. If the option is missing or this app came from a store, check Settings > Apps > Default apps > SMS app and any work-profile or device-admin restrictions."
                     } else {
                         "Check Settings > Apps > Default apps > SMS app and confirm Pinnacle can be selected. A work profile or device administrator may also restrict changes to the default SMS app."
                     }

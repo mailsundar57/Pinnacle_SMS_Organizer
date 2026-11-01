@@ -13,7 +13,6 @@
     <uses-permission android:name="android.permission.SEND_SMS" />
     <!-- Contact names are an optional enhancement and are not requested by this app. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission android:name="android.permission.RECEIVE_MMS" />
 
     <uses-feature
         android:name="android.hardware.telephony"
@@ -68,9 +67,9 @@
             android:name=".data.receiver.SmsSendResultReceiver"
             android:exported="false" />
 
-        <!-- BroadcastReceiver for MMS Push Delivery (Default SMS app requirement) -->
+        <!-- Android SMS-role eligibility requires this route; MMS is not supported by the app. -->
         <receiver
-            android:name=".data.receiver.MmsReceiver"
+            android:name=".data.receiver.RequiredSmsRoleWapPushReceiver"
             android:permission="android.permission.BROADCAST_WAP_PUSH"
             android:exported="true">
             <intent-filter>
