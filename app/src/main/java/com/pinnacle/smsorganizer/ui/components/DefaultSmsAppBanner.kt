@@ -1,10 +1,5 @@
 package com.pinnacle.smsorganizer.ui.components
 
-import android.app.role.RoleManager
-import android.content.Context
-import android.content.Intent
-import android.os.Build
-import android.provider.Telephony
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -36,7 +31,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -44,9 +38,9 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun DefaultSmsAppBanner(
     isDefaultSmsApp: Boolean,
+    onSetAsDefault: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
     var isDismissed by remember { mutableStateOf(false) }
 
     AnimatedVisibility(
@@ -87,7 +81,7 @@ fun DefaultSmsAppBanner(
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 ElevatedButton(
-                    onClick = { requestDefaultSmsRole(context) },
+                    onClick = onSetAsDefault,
                     shape = RoundedCornerShape(8.dp),
                     colors = ButtonDefaults.elevatedButtonColors(
                         containerColor = MaterialTheme.colorScheme.secondary,
@@ -110,24 +104,5 @@ fun DefaultSmsAppBanner(
                 )
             }
         }
-    }
-}
-
-fun requestDefaultSmsRole(context: Context) {
-    try {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val roleManager = context.getSystemService(Context.ROLE_SERVICE) as? RoleManager
-            if (roleManager != null && roleManager.isRoleAvailable(RoleManager.ROLE_SMS)) {
-                val intent = roleManager.createRequestRoleIntent(RoleManager.ROLE_SMS)
-                context.startActivity(intent)
-                return
-            }
-        }
-        val intent = Intent(Telephony.Sms.Intents.ACTION_CHANGE_DEFAULT).apply {
-            putExtra(Telephony.Sms.Intents.EXTRA_PACKAGE_NAME, context.packageName)
-        }
-        context.startActivity(intent)
-    } catch (e: Exception) {
-        // Fallback or ignore if cannot launch intent
     }
 }

@@ -12,18 +12,22 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -35,6 +39,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -57,7 +62,7 @@ import com.pinnacle.smsorganizer.ui.components.CategoryOverrideDialog
 import com.pinnacle.smsorganizer.ui.components.DefaultSmsAppBanner
 import com.pinnacle.smsorganizer.ui.components.EmptyStateView
 import com.pinnacle.smsorganizer.ui.components.PermissionPrompt
-import com.pinnacle.smsorganizer.ui.components.requestDefaultSmsRole
+import com.pinnacle.smsorganizer.diagnostics.SmsHandlerDiagnostics
 import com.pinnacle.smsorganizer.ui.otp.OtpCard
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -71,6 +76,7 @@ fun InboxScreen(
     val state by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     var showMenu by remember { mutableStateOf(false) }
+    var showDiagnostics by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -157,12 +163,27 @@ fun InboxScreen(
                                             viewModel.toggleDemoMode()
                                         }
                                     )
+                                    DropdownMenuItem(
+                                        text = { Text("SMS handler diagnostics") },
+                                        onClick = {
+                                            showMenu = false
+                                            showDiagnostics = true
+                                        }
+                                    )
                                     if (!state.isDefaultSmsApp) {
                                         DropdownMenuItem(
                                             text = { Text("Set as Default SMS App") },
                                             onClick = {
                                                 showMenu = false
-                                                requestDefaultSmsRole(context)
+                                                onRequestSmsPermission()
+                                            }
+                                        )
+                                    } else {
+                                        DropdownMenuItem(
+                                            text = { Text("Review SMS permissions") },
+                                            onClick = {
+                                                showMenu = false
+                                                onRequestSmsPermission()
                                             }
                                         )
                                     }
@@ -194,7 +215,10 @@ fun InboxScreen(
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
                 // Default SMS App Banner
-                DefaultSmsAppBanner(isDefaultSmsApp = state.isDefaultSmsApp)
+                DefaultSmsAppBanner(
+                    isDefaultSmsApp = state.isDefaultSmsApp,
+                    onSetAsDefault = onRequestSmsPermission
+                )
             }
         },
         modifier = modifier
@@ -288,5 +312,25 @@ fun InboxScreen(
                 )
             }
         }
+    }
+
+    if (showDiagnostics) {
+        val report = remember { SmsHandlerDiagnostics.inspect(context).toDisplayText() }
+        AlertDialog(
+            onDismissRequest = { showDiagnostics = false },
+            title = { Text("SMS handler diagnostics") },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .heightIn(max = 480.dp)
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    Text(report, style = MaterialTheme.typography.bodySmall)
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showDiagnostics = false }) { Text("Close") }
+            }
+        )
     }
 }

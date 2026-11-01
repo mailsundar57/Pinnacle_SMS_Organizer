@@ -75,6 +75,8 @@ Pinnacle SMS Organizer is engineered with a strict **Privacy-by-Design** philoso
 
 The app asks the user to select Pinnacle as the default SMS app before requesting SMS runtime permissions. It then requests `READ_SMS`, `RECEIVE_SMS`, and `SEND_SMS`; notification permission is independent and can be denied. Contact lookup is optional and currently does not request `READ_CONTACTS`.
 
+Open **More → SMS handler diagnostics** to see the current default-role status, SMS runtime permission grants, and whether the required manifest components resolve. The report omits message bodies, senders, and message identifiers. Every role entry point uses the same role-first, permission-after-consent flow.
+
 ### Default SMS App Role Limitations
 Android 10+ uses `RoleManager.ROLE_SMS`; older supported versions use the legacy default-SMS chooser. Android and Google Play may restrict SMS permissions to an eligible default handler. A sideloaded app can also be subject to device-specific installation restrictions. The current environment had no usable ADB connection, so the installed phone's exact permission state could not be inspected.
 - **When NOT the Default SMS App**:
