@@ -33,7 +33,7 @@ class SmsRepositoryImpl(
     private val refreshTrigger = MutableStateFlow(0L)
 
     override fun hasSmsPermission(): Boolean {
-        return smsProviderReader.hasReadSmsPermission() && smsProviderReader.isDefaultSmsApp()
+        return smsProviderReader.hasReadSmsPermission()
     }
 
     override fun isDefaultSmsApp(): Boolean {
@@ -47,7 +47,7 @@ class SmsRepositoryImpl(
     }
 
     override suspend fun refresh() {
-        refreshTrigger.value = System.currentTimeMillis()
+        refreshTrigger.value = System.nanoTime()
     }
 
     override fun observeCategoryOverrides(): Flow<Map<String, SmsCategory>> {
@@ -72,7 +72,7 @@ class SmsRepositoryImpl(
             val threadStateMap = threadStates.associateBy { it.threadId }
 
             // Decide whether to use real SMS or sample data
-            val rawMessages = if (isDemo || !hasSmsPermission() || !isDefaultSmsApp()) {
+            val rawMessages = if (isDemo || !hasSmsPermission()) {
                 SampleDataProvider.getSampleMessages()
             } else {
                 fetchRealMessages(overrideMap)
@@ -146,7 +146,7 @@ class SmsRepositoryImpl(
             }
             val threadState = threadStates.firstOrNull { it.threadId == threadId }
 
-            val messages = if (isDemo || !hasSmsPermission() || !isDefaultSmsApp()) {
+            val messages = if (isDemo || !hasSmsPermission()) {
                 SampleDataProvider.getSampleThreadConversation(threadId)
             } else {
                 fetchRealThreadMessages(threadId, overrideMap)

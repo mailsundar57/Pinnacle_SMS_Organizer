@@ -73,33 +73,23 @@ Pinnacle SMS Organizer is engineered with a strict **Privacy-by-Design** philoso
 
 ## 📱 SMS access and default handler status
 
-The app asks the user to select Pinnacle as the default SMS app before requesting SMS runtime permissions. It then requests `READ_SMS`, `RECEIVE_SMS`, and `SEND_SMS`; notification permission is independent and can be denied. Contact lookup is optional and currently does not request `READ_CONTACTS`.
+Pinnacle targets modern Android (**Android 13 / API 33 through Android 16 / API 36**) and supports both modes:
+- **Default SMS App (`RoleManager.ROLE_SMS`) — recommended primary flow**: Full SMS inbox reading, incoming SMS handling (`SMS_DELIVER`), composing/sending SMS, and syncing read status with Android's Telephony provider.
+- **Read-Only SMS Mode (`READ_SMS` + `RECEIVE_SMS`)**: Organizes and reads existing/incoming SMS without replacing your default messaging app, using local Room tracking for read/unread state, pins, and category overrides, with a banner to optionally upgrade to Default SMS App.
 
-Open **More → SMS handler diagnostics** to see the current default-role status, SMS runtime permission grants, and whether the required manifest components resolve. The report omits message bodies, senders, and message identifiers. Every role entry point uses the same role-first, permission-after-consent flow.
+Open **More → SMS handler diagnostics** to inspect `RoleManager.ROLE_SMS` status, runtime permission grants, installer provenance, and resolution of all 4 required default-SMS manifest components. The report omits message bodies, senders, and message identifiers.
 
-### Default SMS App Role Limitations
-Android 10+ uses `RoleManager.ROLE_SMS`; older supported versions use the legacy default-SMS chooser. On Android 15+, apps installed from a local/downloaded APK may have the SMS role and SMS permissions restricted until the user explicitly allows the restricted setting in that app's App info page. After a rejection, Android requires this confirmation from App info; the app cannot grant it programmatically. Open App info → ⋮ → **Allow restricted settings**, authenticate, return, then retry **Set as Default SMS App**. The in-app diagnostics report the installer source where Android exposes it. The current development environment had no usable ADB connection, so the installed phone's exact state could not be inspected.
-- **When NOT the Default SMS App**:
-  - Pinnacle does not query the system SMS provider. The inbox offers demo messages until the user selects Pinnacle as default and grants the required permissions.
-  - The app refreshes role state on resume and stops querying real messages if the user switches to another SMS app.
-- **Current implementation scope**: SMS inbox reads, incoming SMS provider insertion/notifications, basic text composition, and send-result recording are implemented. The app is SMS-only and does not process or display MMS. Android requires a WAP push receiver and MMS URI routes in the manifest for SMS-role eligibility; these routes are retained as inert declarations, without requesting an MMS permission. Multipart result handling polish and `RESPOND_VIA_MESSAGE` are incomplete. Do not treat the app as a complete SMS replacement until those pieces and real-device behavior are verified.
-
-### Store distribution
-
-Google Play requires a qualifying core use case, default-handler flow before SMS permission requests, an SMS permissions declaration in Play Console, and a privacy policy describing sensitive SMS processing, use, retention, sharing, and deletion. Publish and link that policy before submission; this repository does not currently host a published policy URL. As of August 31, 2026, new Play submissions must target API 36. Review the live Play SMS policy and requirements before submission. F-Droid builds can be produced from source; dependencies are AndroidX, Kotlin, Room, and coroutines from public repositories, with no proprietary service SDKs. Classification remains offline and on-device.
-
-The privacy policy draft is [PRIVACY_POLICY.md](PRIVACY_POLICY.md). Replace its publisher/contact placeholders, verify every statement against the final build, publish it at a stable public URL, and add that URL to the store listing before release. The manifest disables app-data backup.
-
-Release builds use the standard Android release variant. Create a private keystore and put `PINNACLE_STORE_FILE`, `PINNACLE_STORE_PASSWORD`, `PINNACLE_KEY_ALIAS`, and `PINNACLE_KEY_PASSWORD` in `~/.gradle/gradle.properties` or CI secrets; never commit keystores or passwords. The repository ignores common keystore extensions. Signing does not guarantee Play Protect warnings or store approval will disappear.
-
-See [DISTRIBUTION_CHECKLIST.md](DISTRIBUTION_CHECKLIST.md) for current release gates and store-console work.
+### Android 15 / 16 Restricted Settings (Local APK Testing vs. Google Play)
+- **Local / sideloaded APK testing**: Android 15 and 16 enforce Enhanced Confirmation Mode (ECM) on sideloaded APKs, blocking both `ROLE_SMS` and `READ_SMS` until manually unlocked. Open **App info → Permissions → SMS** (tap it once if greyed out to trigger Android's Restricted setting notice), return to **App info → ⋮ → Allow restricted settings**, authenticate, and retry. Installing via `adb install` or Google Play does not trigger sideload ECM restrictions.
+- **Google Play distribution**: Google Play's SMS/Call Log policy requires apps declaring `READ_SMS`/`RECEIVE_SMS`/`SEND_SMS` to request the Default SMS Handler role (`ROLE_SMS`) as their primary flow, submit the Play Console Permissions Declaration Form, host a public privacy policy URL, and target API 36. Release builds use the standard `bundleRelease` AAB signed with your private keystore configured via `PINNACLE_STORE_FILE`, `PINNACLE_STORE_PASSWORD`, `PINNACLE_KEY_ALIAS`, and `PINNACLE_KEY_PASSWORD` in `~/.gradle/gradle.properties` or CI secrets.
+- **Current implementation scope**: SMS inbox reads, incoming SMS provider insertion/notifications (`SMS_DELIVER`), live read-only inbox refresh (`SMS_RECEIVED`), basic text composition, and send-result recording are implemented. The app is SMS-only and does not process or display MMS (the inert `WAP_PUSH_DELIVER` receiver and MMS URI routes remain in the manifest for `ROLE_SMS` eligibility).
 
 ---
 
 ## 🛠️ Tech Stack
 
 - **Language**: Kotlin 1.9.23
-- **Minimum SDK**: API 26 (Android 8.0 Oreo)
+- **Minimum SDK**: API 33 (Android 13 Tiramisu)
 - **Target / Compile SDK**: API 36 (Android 16)
 - **UI Framework**: Jetpack Compose with Material 3 (Compose BOM `2024.04.01`)
 - **Architecture**: MVVM with Kotlin Coroutines and StateFlow

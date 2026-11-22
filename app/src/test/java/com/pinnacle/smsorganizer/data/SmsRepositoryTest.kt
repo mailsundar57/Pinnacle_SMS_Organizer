@@ -112,6 +112,10 @@ class FakeSmsProviderReader(
     fun setPermission(granted: Boolean) {
         hasPerm = granted
     }
+
+    fun setDefaultSmsApp(defaultApp: Boolean) {
+        isDefault = defaultApp
+    }
 }
 
 class FakeContactReader : ContactReader(null) {
@@ -273,6 +277,30 @@ class SmsRepositoryTest {
         val searchResult2 = repository.getConversations(searchQuery = "google").first()
         assertEquals(1, searchResult2.size)
         assertEquals(101L, searchResult2[0].threadId)
+    }
+
+    @Test
+    fun testReadOnlyMode_ReadsMessagesWhenReadPermissionGrantedWithoutDefaultRole() = runTest(testDispatcher) {
+        val now = System.currentTimeMillis()
+        fakeSmsReader.setPermission(true)
+        fakeSmsReader.setDefaultSmsApp(false)
+        fakeSmsReader.setMessages(
+            listOf(
+                RawSms(1, 701, "GOOGLE", now, "G-654321 is your Google verification code", isRead = false, isFromMe = false)
+            )
+        )
+
+        assertTrue("READ_SMS alone should enable read-only mode", repository.hasSmsPermission())
+        assertFalse("App should report non-default status", repository.isDefaultSmsApp())
+
+        val conversations = repository.getConversations().first()
+        assertEquals(1, conversations.size)
+        assertEquals(701L, conversations.first().threadId)
+
+        // Local read state should still work via Room even when not default SMS app
+        repository.markConversationRead(701L, isRead = true)
+        val updated = repository.getConversations().first().first()
+        assertTrue(updated.isRead)
     }
 
     @Test

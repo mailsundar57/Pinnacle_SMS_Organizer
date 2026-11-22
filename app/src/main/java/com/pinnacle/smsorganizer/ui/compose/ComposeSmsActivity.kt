@@ -1,16 +1,19 @@
 package com.pinnacle.smsorganizer.ui.compose
 
-import android.content.Intent
-import android.net.Uri
-import android.os.Bundle
 import android.Manifest
+import android.app.PendingIntent
+import android.app.role.RoleManager
+import android.content.ContentValues
+import android.content.Intent
 import android.content.pm.PackageManager
-import androidx.core.content.ContextCompat
-import android.telephony.SmsManager
+import android.os.Bundle
 import android.provider.Telephony
+import android.telephony.SmsManager
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.core.content.ContextCompat
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -43,6 +46,7 @@ class ComposeSmsActivity : ComponentActivity() {
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
 
         // Parse recipient and message body from intent
         var initialRecipient = ""
@@ -133,8 +137,16 @@ class ComposeSmsActivity : ComponentActivity() {
         }
     }
 
+    private fun isDefaultSmsApp(): Boolean {
+        val roleManager = getSystemService(RoleManager::class.java)
+        if (roleManager != null && roleManager.isRoleAvailable(RoleManager.ROLE_SMS)) {
+            return roleManager.isRoleHeld(RoleManager.ROLE_SMS)
+        }
+        return Telephony.Sms.getDefaultSmsPackage(this) == packageName
+    }
+
     private fun sendSms(phoneNumber: String, text: String) {
-        if (Telephony.Sms.getDefaultSmsPackage(this) != packageName) {
+        if (!isDefaultSmsApp()) {
             Toast.makeText(this, "Set Pinnacle as the default SMS app before sending.", Toast.LENGTH_LONG).show()
             return
         }
@@ -144,33 +156,41 @@ class ComposeSmsActivity : ComponentActivity() {
         }
         if (phoneNumber.isBlank() || text.isBlank()) return
         try {
-            val smsManager: SmsManager = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-                applicationContext.getSystemService(SmsManager::class.java)
-            } else {
-                @Suppress("DEPRECATION")
-                SmsManager.getDefault()
+            val smsManager = applicationContext.getSystemService(SmsManager::class.java)
+            if (smsManager == null) {
+                Toast.makeText(this, "SMS service is unavailable on this device.", Toast.LENGTH_LONG).show()
+                return
             }
-            val sentUri = contentResolver.insert(Telephony.Sms.Outbox.CONTENT_URI,
-                android.content.ContentValues().apply {
+            val sentUri = contentResolver.insert(
+                Telephony.Sms.Outbox.CONTENT_URI,
+                ContentValues().apply {
                     put(Telephony.Sms.ADDRESS, phoneNumber)
                     put(Telephony.Sms.BODY, text)
                     put(Telephony.Sms.DATE, System.currentTimeMillis())
                     put(Telephony.Sms.TYPE, Telephony.Sms.MESSAGE_TYPE_OUTBOX)
                     put(Telephony.Sms.THREAD_ID, Telephony.Threads.getOrCreateThreadId(this@ComposeSmsActivity, phoneNumber))
-                })
+                }
+            )
             val sentIntent = Intent(this, com.pinnacle.smsorganizer.data.receiver.SmsSendResultReceiver::class.java)
                 .setAction(com.pinnacle.smsorganizer.data.receiver.SmsSendResultReceiver.ACTION_SENT)
                 .setData(sentUri)
-            val sentPendingIntent = android.app.PendingIntent.getBroadcast(
-                this, (sentUri?.lastPathSegment?.hashCode() ?: System.currentTimeMillis().toInt()), sentIntent,
-                android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+            val sentPendingIntent = PendingIntent.getBroadcast(
+                this,
+                (sentUri?.lastPathSegment?.hashCode() ?: System.currentTimeMillis().toInt()),
+                sentIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
             val parts = smsManager.divideMessage(text)
             if (parts.size == 1) {
                 smsManager.sendTextMessage(phoneNumber, null, text, sentPendingIntent, null)
             } else {
-                smsManager.sendMultipartTextMessage(phoneNumber, null, parts,
-                    ArrayList(List(parts.size) { sentPendingIntent }), null)
+                smsManager.sendMultipartTextMessage(
+                    phoneNumber,
+                    null,
+                    parts,
+                    ArrayList(List(parts.size) { sentPendingIntent }),
+                    null
+                )
             }
             Toast.makeText(this, "SMS queued for sending.", Toast.LENGTH_SHORT).show()
             finish()

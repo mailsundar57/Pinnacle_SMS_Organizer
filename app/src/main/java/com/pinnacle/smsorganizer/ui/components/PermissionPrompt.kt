@@ -3,6 +3,7 @@ package com.pinnacle.smsorganizer.ui.components
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.provider.Settings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -22,11 +23,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.MarkEmailRead
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilledTonalButton
@@ -34,6 +35,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,11 +44,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 
 @Composable
 fun PermissionPrompt(
+    isDefaultSmsApp: Boolean,
     onRequestDefaultSms: () -> Unit,
+    onRequestReadOnlyPermission: () -> Unit,
     onEnableDemoMode: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -92,7 +95,7 @@ fun PermissionPrompt(
                 Spacer(modifier = Modifier.height(14.dp))
 
                 Text(
-                    text = "SMS Permission Required",
+                    text = if (isDefaultSmsApp) "Allow SMS Access" else "SMS Permission Required",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center
@@ -101,7 +104,11 @@ fun PermissionPrompt(
                 Spacer(modifier = Modifier.height(6.dp))
 
                 Text(
-                    text = "Pinnacle organizes your SMS messages into Personal, Transactions, OTPs, and Promotions right on your device.",
+                    text = if (isDefaultSmsApp) {
+                        "Pinnacle is set as your default SMS app, but SMS permission is currently disabled."
+                    } else {
+                        "Set Pinnacle as your default SMS app for full messaging and organization, or grant read-only SMS access."
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
@@ -134,7 +141,7 @@ fun PermissionPrompt(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Request role first; runtime SMS permissions follow only after role acceptance.
+                // Primary: Default SMS role (or grant SMS runtime permissions if already default)
                 Button(
                     onClick = onRequestDefaultSms,
                     shape = RoundedCornerShape(12.dp),
@@ -144,37 +151,76 @@ fun PermissionPrompt(
                 ) {
                     Icon(imageVector = Icons.Default.Security, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Set as Default SMS App", fontWeight = FontWeight.SemiBold)
+                    Text(
+                        text = if (isDefaultSmsApp) "Grant SMS Permissions" else "Set as Default SMS App",
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+
+                if (!isDefaultSmsApp) {
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Secondary: Read-Only SMS mode without changing default SMS app
+                    FilledTonalButton(
+                        onClick = onRequestReadOnlyPermission,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(44.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.MarkEmailRead,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Allow Read-Only SMS Access")
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Secondary: Open App Settings
-                FilledTonalButton(
+                // Open App Settings directly
+                OutlinedButton(
                     onClick = { openAppSettings(context) },
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(44.dp)
                 ) {
-                    Icon(imageVector = Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Open App Settings")
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
-                // Tertiary: Demo Mode
-                OutlinedButton(
+                // Demo Mode
+                TextButton(
                     onClick = onEnableDemoMode,
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(44.dp)
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(imageVector = Icons.Default.Visibility, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Icon(
+                        imageVector = Icons.Default.Visibility,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Explore Demo Messages")
+                }
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Android 15/16 sideloaded builds: if SMS access is blocked, open App Settings → Permissions → SMS once, then tap ⋮ → Allow restricted settings.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
                 }
             }
         }
@@ -182,13 +228,20 @@ fun PermissionPrompt(
 }
 
 fun openAppSettings(context: Context) {
-    try {
+    runCatching {
         val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
             data = Uri.fromParts("package", context.packageName, null)
             flags = Intent.FLAG_ACTIVITY_NEW_TASK
         }
         context.startActivity(intent)
-    } catch (e: Exception) {
-        // Fallback
+    }
+}
+
+fun openDefaultAppsSettings(context: Context) {
+    runCatching {
+        val intent = Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        }
+        context.startActivity(intent)
     }
 }

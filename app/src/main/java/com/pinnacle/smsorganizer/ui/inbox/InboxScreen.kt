@@ -69,7 +69,8 @@ import com.pinnacle.smsorganizer.ui.otp.OtpCard
 @Composable
 fun InboxScreen(
     viewModel: InboxViewModel,
-    onRequestSmsPermission: () -> Unit,
+    onRequestDefaultSms: () -> Unit,
+    onRequestReadOnlyPermission: () -> Unit,
     onNavigateToConversation: (threadId: Long, address: String) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -175,7 +176,7 @@ fun InboxScreen(
                                             text = { Text("Set as Default SMS App") },
                                             onClick = {
                                                 showMenu = false
-                                                onRequestSmsPermission()
+                                                onRequestDefaultSms()
                                             }
                                         )
                                     } else {
@@ -183,7 +184,7 @@ fun InboxScreen(
                                             text = { Text("Review SMS permissions") },
                                             onClick = {
                                                 showMenu = false
-                                                onRequestSmsPermission()
+                                                onRequestDefaultSms()
                                             }
                                         )
                                     }
@@ -214,11 +215,13 @@ fun InboxScreen(
 
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
-                // Default SMS App Banner
-                DefaultSmsAppBanner(
-                    isDefaultSmsApp = state.isDefaultSmsApp,
-                    onSetAsDefault = onRequestSmsPermission
-                )
+                // Default SMS App Banner (shown in Read-Only SMS mode or Demo mode)
+                if (state.hasSmsPermission) {
+                    DefaultSmsAppBanner(
+                        isDefaultSmsApp = state.isDefaultSmsApp,
+                        onSetAsDefault = onRequestDefaultSms
+                    )
+                }
             }
         },
         modifier = modifier
@@ -240,7 +243,9 @@ fun InboxScreen(
 
                 !state.hasSmsPermission && !state.isDemoMode -> {
                     PermissionPrompt(
-                        onRequestDefaultSms = onRequestSmsPermission,
+                        isDefaultSmsApp = state.isDefaultSmsApp,
+                        onRequestDefaultSms = onRequestDefaultSms,
+                        onRequestReadOnlyPermission = onRequestReadOnlyPermission,
                         onEnableDemoMode = viewModel::enableDemoMode
                     )
                 }
@@ -315,7 +320,7 @@ fun InboxScreen(
     }
 
     if (showDiagnostics) {
-        val report = remember { SmsHandlerDiagnostics.inspect(context).toDisplayText() }
+        val report = SmsHandlerDiagnostics.inspect(context).toDisplayText()
         AlertDialog(
             onDismissRequest = { showDiagnostics = false },
             title = { Text("SMS handler diagnostics") },

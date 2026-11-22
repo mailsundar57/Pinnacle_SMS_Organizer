@@ -1,10 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Required on Android 11+ for Telephony.Sms.getDefaultSmsPackage(). -->
+    <!-- Package visibility on modern Android for SMS handler diagnostics and default SMS queries. -->
     <queries>
         <intent>
             <action android:name="android.provider.Telephony.SMS_DELIVER" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.SENDTO" />
+            <data android:scheme="smsto" />
         </intent>
     </queries>
 
@@ -60,6 +64,16 @@
             android:exported="true">
             <intent-filter>
                 <action android:name="android.provider.Telephony.SMS_DELIVER" />
+            </intent-filter>
+        </receiver>
+
+        <!-- BroadcastReceiver for Read-Only SMS mode live inbox refreshes when not default SMS app -->
+        <receiver
+            android:name=".data.receiver.SmsObservedReceiver"
+            android:permission="android.permission.BROADCAST_SMS"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.provider.Telephony.SMS_RECEIVED" />
             </intent-filter>
         </receiver>
 

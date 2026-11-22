@@ -1,9 +1,9 @@
 package com.pinnacle.smsorganizer.data.provider
 
+import android.app.role.RoleManager
 import android.content.ContentValues
 import android.content.Context
 import android.database.Cursor
-import android.net.Uri
 import android.provider.Telephony
 import androidx.core.content.ContextCompat
 
@@ -29,13 +29,17 @@ open class SmsProviderReader(private val context: Context?) {
 
     open fun isDefaultSmsApp(): Boolean {
         val ctx = context ?: return false
+        val roleManager = ctx.getSystemService(RoleManager::class.java)
+        if (roleManager != null && roleManager.isRoleAvailable(RoleManager.ROLE_SMS)) {
+            return roleManager.isRoleHeld(RoleManager.ROLE_SMS)
+        }
         val defaultPackage = Telephony.Sms.getDefaultSmsPackage(ctx)
         return ctx.packageName.equals(defaultPackage, ignoreCase = true)
     }
 
     open fun queryAllMessages(): List<RawSms> {
         val ctx = context ?: return emptyList()
-        if (!hasReadSmsPermission() || !isDefaultSmsApp()) {
+        if (!hasReadSmsPermission()) {
             return emptyList()
         }
 
@@ -102,7 +106,7 @@ open class SmsProviderReader(private val context: Context?) {
 
     open fun queryMessagesForThread(threadId: Long): List<RawSms> {
         val ctx = context ?: return emptyList()
-        if (!hasReadSmsPermission() || !isDefaultSmsApp()) {
+        if (!hasReadSmsPermission()) {
             return emptyList()
         }
 
